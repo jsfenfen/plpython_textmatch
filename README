@@ -1,0 +1,60 @@
+Postgresql's fuzzystrmatch is great; in includes db procedures for soundex, levenshtein, metaphone and doublemetaphone functions(see more about it below) but it's missing some text functions I wanted to use. I hacked up a version of them as postgresql database functions ( in pl/python ). Specifically I wanted n-grams, longest-matching-sequence and a text fingerprint like what's used in google Refine. I'm not really sure these are 'right'--and they'll basically fail with non ascii data--but they do seem to munge text in a consistent way. Not tested, blahdy, blahdy. 
+Also, see pg_trgm  http://www.postgresql.org/docs/current/static/pgtrgm.html
+
+1. Installing pl/python. 
+Not sure how it'll work on your rig, but I did it by typing this into the db shell: 
+
+# CREATE PROCEDURAL LANGUAGE 'plpythonu' HANDLER plpython_call_handler;
+
+--> note that we're calling the language 'plpythonu' here; if you install it with a different name, make sure you modify the .sql file that installs the commands with the correct language name. Sometimes it's installed as plpython (without the u). 
+
+2. Run the command below, which just reads mungemore.sql into postgres (orif you really want, enter the individual functions into the db shell)
+
+psql -u username -d database < mungemore.sql
+
+If it works, it'll install these additional functions 
+
+- fingerprint (text1) RETURNS text
+- longest_match (text1, text2) RETURNS int
+- total_match (text1, text2) RETURNS int
+- ngram (text1, ngram_length int) RETURNS text
+
+----
+Examples:
+# select fingerprint('abracadabra');
+ fingerprint 
+-------------
+ abcdr
+(1 row)
+
+# select longest_match('blah', 'blare-h');
+ longest_match 
+---------------
+             3
+(1 row)
+# select total_match('blah', 'blare-h');
+ total_match 
+-------------
+           4
+(1 row)
+# select ngram('abracadabra', 2);
+     ngram      
+----------------
+ abacadbrcadara
+(1 row)
+
+# select ngram('abracadabra', 4);
+            ngram             
+------------------------------
+ abraacadadabbraccadadabrraca
+(1 row)
+
+
+
+> More about fuzzystrmatch: 
+http://www.postgresql.org/docs/8.3/static/fuzzystrmatch.html
+
+Includes support for soundex, levenshtein, metaphone and doublemetaphone functions. I was able to load it via the fuzzystrmatch.sql file; on my installation it was here:  /usr/local/pgsql/share/contrib/fuzzystrmatch.sql, so to load it I ran this: 
+
+psql -U username -d database < /usr/local/pgsql/share/contrib/fuzzystrmatch.sql
+
