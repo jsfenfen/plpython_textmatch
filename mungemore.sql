@@ -35,7 +35,8 @@ import difflib
 
 isjunk=None
 
-s = difflib.SequenceMatcher(isjunk,text1, text2);
+# Case insensitive here--not sure it's needed / helpful
+s = difflib.SequenceMatcher(isjunk,text1.lower(), text2.lower());
 
 longest_match_length = 0
 
@@ -54,7 +55,7 @@ LANGUAGE 'plpythonu' VOLATILE;
 -----
 -- Erase the function with this command:
 --
---# drop function longest_match(text, text, int);
+--# drop function longest_match(text, text);
 -------
 
 
@@ -90,7 +91,7 @@ LANGUAGE 'plpythonu' VOLATILE;
 -----
 -- Erase the function with this command:
 --
---# drop function total_match(text, text, int);
+--# drop function total_match(text, text);
 --
 
 ------
@@ -114,18 +115,16 @@ for x in b:
         chars_array.append(x)
 
 cleaned_string = "".join(chars_array)
-length = len(cleaned_string)
+length = len(chars_array)
 
 # can't run ngrams on too short a string:
 if (ngram_length >= length):
     return cleaned_string
 
-cleaned_string_array = list(cleaned_string)
-
 ngram_hash = {}
 
 for a in range (0, length-ngram_length+1):
-    ngram_array = cleaned_string_array[a:a+ngram_length]
+    ngram_array = chars_array[a:a+ngram_length]
     this_ngram = "".join(ngram_array)
     ngram_hash[this_ngram]=1
 
