@@ -103,11 +103,12 @@ CREATE OR REPLACE FUNCTION ngram (IN somestring text, ngram_length int) RETURNS 
 $$
 mystring = somestring.lower()
 
+# What we're starting out with before purging non ascii
+raw_characters = list(mystring)
 
-b = list(mystring)
 chars_array = []
 
-for x in b:
+for x in raw_characters:
     ordx = ord(x)
         
     # ignore it if it's punctuation or whitespace    
@@ -133,3 +134,27 @@ result.sort()
 return ''.join(result)
 $$
 LANGUAGE 'plpythonu' VOLATILE;
+
+
+-- apply the same cleaning 
+CREATE OR REPLACE FUNCTION jf_clean (IN somestring text) RETURNS text AS
+$$
+mystring = somestring.lower()
+
+# What we're starting out with before purging non ascii
+raw_characters = list(mystring)
+
+chars_array = []
+
+for x in raw_characters:
+    ordx = ord(x)
+        
+    # ignore it if it's punctuation or whitespace    
+    if ( (ordx > 47 and ordx < 58) or ( ordx > 96 and ordx < 123) ):
+        chars_array.append(x)
+
+cleaned_string = "".join(chars_array)
+return cleaned_string
+$$
+LANGUAGE 'plpythonu' VOLATILE;
+

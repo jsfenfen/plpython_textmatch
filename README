@@ -58,3 +58,5 @@ Includes support for soundex, levenshtein, metaphone and doublemetaphone functio
 
 psql -U username -d database < /usr/local/pgsql/share/contrib/fuzzystrmatch.sql
 
+On another installation on OS X 10.6.8 it was here: /Library/PostgreSQL/8.4/share/postgresql/contrib/fuzzystrmatch.sql
+
