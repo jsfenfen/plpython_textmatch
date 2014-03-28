@@ -24,14 +24,20 @@ LANGUAGE 'plpythonu' VOLATILE;
 -- To delete this function use: 
 -- drop function fingerprint(text);
 ----
+
+----
 -- See python's sequencematcher. This returns the longest matching block. 
---
---
+-- This uses a hacky import so that it's not repeated
+-- See: http://stackoverflow.com/a/15025425
 --
 CREATE OR REPLACE FUNCTION longest_match (IN text1 text, text2 text) RETURNS int AS
 $$
 
-import difflib
+if 'difflib' in SD:
+    difflib = SD['difflib']
+else:
+    import difflib
+    SD['difflib'] = difflib
 
 isjunk=None
 
@@ -67,7 +73,14 @@ LANGUAGE 'plpythonu' VOLATILE;
 CREATE OR REPLACE FUNCTION total_match (IN text1 text, text2 text) RETURNS int AS
 $$
 
-import difflib
+if 'difflib' in SD:
+    difflib = SD['difflib']
+else:
+    import difflib
+    SD['difflib'] = difflib
+    
+
+
 
 isjunk=None
 
@@ -111,9 +124,10 @@ chars_array = []
 for x in raw_characters:
     ordx = ord(x)
         
-    # ignore it if it's punctuation or whitespace    
+    # ignore it if it's punctuation    
     if ( (ordx > 47 and ordx < 58) or ( ordx > 96 and ordx < 123) ):
         chars_array.append(x)
+    
 
 cleaned_string = "".join(chars_array)
 length = len(chars_array)
@@ -136,7 +150,7 @@ $$
 LANGUAGE 'plpythonu' VOLATILE;
 
 
--- apply the same cleaning 
+-- apply similar cleaning, but preserve spaces
 CREATE OR REPLACE FUNCTION jf_clean (IN somestring text) RETURNS text AS
 $$
 mystring = somestring.lower()
@@ -150,11 +164,67 @@ for x in raw_characters:
     ordx = ord(x)
         
     # ignore it if it's punctuation or whitespace    
-    if ( (ordx > 47 and ordx < 58) or ( ordx > 96 and ordx < 123) ):
+    if ( (ordx > 47 and ordx < 58) or ( ordx > 96 and ordx < 123) or ordx == 32):
         chars_array.append(x)
 
 cleaned_string = "".join(chars_array)
+# replace multiple spaces with single space
+cleaned_string = ' '.join(cleaned_string.split())
 return cleaned_string
 $$
 LANGUAGE 'plpythonu' VOLATILE;
 
+
+
+
+
+-- remove common corporate abbreviations
+-- because of all the regexes this ain't fast.
+CREATE OR REPLACE FUNCTION payee_stopwords (IN somestring text) RETURNS text AS
+$$
+
+if 're' in SD:
+    re = SD['re']
+else:
+    import re
+    SD['re'] = re
+    
+
+if 'regex_replace_list' in SD:
+    regex_replace_list = SD['regex_replace_list']
+else:
+    # order matters here
+    regex_replace_list = [
+            re.compile(r'\bincorporated\b'),
+            re.compile(r'\binc\b'),
+            re.compile(r'\bcorporation\b'),
+            re.compile(r'\bcorp\b'),
+            re.compile(r'\bco\b'),
+            re.compile(r'\bllc\b'),
+            re.compile(r'\bllp\b'),
+            re.compile(r'\bpllc\b'),
+            re.compile(r'\blp\b'),
+            re.compile(r'\bcounty\b'),
+            re.compile(r'\bstate\b'),
+            re.compile(r'\brepublican\b'),
+            re.compile(r'\bdemocratic\b'),
+            re.compile(r'\bcommittee\b'),
+            re.compile(r'\bthe\b'),
+
+        ]
+    
+    SD['regex_replace_list'] = regex_replace_list
+    
+mystring = somestring.lower()
+for corp_regex in regex_replace_list:
+    mystring = re.sub(corp_regex, "", mystring)
+return mystring
+$$
+LANGUAGE 'plpythonu' VOLATILE;
+
+-----
+-----
+-- Erase the function with this command:
+--
+--# drop function corporate_stopwords(text);
+--
